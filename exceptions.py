@@ -1,63 +1,71 @@
+import os
 import settings
 
 from datetime import datetime
+from collections import OrderedDict
 
 
 class Score(object):
 
+    '''
+    File I\\O supportive method(s).
+
+    append_new_record - add a new record to a file.
+    append_best_score - is a file parser. Parses all the strings and
+    uses the first value of each string to sort the file using it.
+    '''
+
+    # Apeend a score to a file
     @staticmethod
-    def _create_record(file_location, score, name):
+    # Appending a new score, score value should be first!
+    def append_score(file_location, score: int, name):
+        # Open file, create new if not exists
         with open(file_location, 'a+') as file:
-            file.write('{player_score} {player_name} {date} / {time}'.format(
+            score = '{player_score} {player_name} {date} / {time}'.format(
                 player_score=score,
                 player_name=name,
                 date=datetime.now().date(),
-                time=datetime.now().time(),
-            ))
-
-    @classmethod
-    def write_score(cls, file_location, player_score, player_name):
-        with open(file_location, 'a+') as file:
-            if len(file.readlines()) > 0:  # Go to newline if file is not empty
-                file.write('\n')
-            cls._create_record(
-                file_location=file_location,
-                score=player_score,
-                name=player_name
+                time=datetime.now().time().strftime('%H:%M:%S'),
             )
+            # Write newline if the file is not empty
+            if os.stat(file_location).st_size:
+                score = '\n' + score
+            file.write(score)
 
     @classmethod
-    def write_best_score(cls, file_location, player_score, player_name):
+    def append_best_score(cls, file_location, score: int, name, line_limit: int = settings.BEST_CORE_FILE_LENGTH):
+        cls.append_score(
+            file_location=file_location,
+            score=score,
+            name=name
+        )
         with open(file_location, 'a+') as file:
-            file_list = file.readlines()
-            print('YOOO', len(file_list))
-            if 0 < len(file_list) < 10:  # Go to newline if file is not empty
-                file.write('\n')
-                cls._create_record(
-                    file_location=file_location,
-                    score=player_score,
-                    name=player_name
-                )
-                results = file_list.sort(reverse=True)
-                file.truncate()
-                file.writelines(["%s\n" % item for item in results.sort().reverse()])
-            else:
-                file.write('\n')
-                cls._create_record(
-                    file_location=file_location,
-                    score=player_score,
-                    name=player_name
-                )
-                results = file.readlines().sort(reverse=True)
-                if len(results) > 0:
-                    file.truncate()
-                    results = results[0:len(results) - 1]
-                file.writelines(["%s\n" % item for item in results])
+            file.seek(0)  # Go to the beginning of the file
+
+            lines = file.readlines()
+            lines = [line.replace('\n', '') for line in lines]  # Get clean lines
+            detailed_list = [line.split(' ') for line in lines]
+
+            scores = {}
+            for element in detailed_list:
+                score_name = int(element[0])
+                score_details = ''
+                for item in element[1:]:
+                    score_details += ' ' + str(item)
+                score_details = score_details.strip()
+                scores[score_name] = score_details
+            scores = OrderedDict(sorted(scores.items()))
+            scores = sorted(scores.items(), reverse=True)
+            new_list = [f'{key} {value}' for key, value in scores]
+            new_list = new_list[0:line_limit]
+            new_list[1:] = ['\n' + line for line in new_list[1:]]
+            file.truncate(0)
+            file.writelines(new_list)
 
 
-class GameOver(Exception, Score):
+class GameOver(Exception):
     pass
 
 
-class EnemyDown(Exception, Score):
+class EnemyDown(Exception):
     pass

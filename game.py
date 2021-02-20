@@ -1,6 +1,6 @@
-from models import Enemy, Player
 import settings
-from exceptions import EnemyDown, GameOver
+from models import Enemy, Player
+from exceptions import EnemyDown, GameOver, Score
 
 
 player_name = str(input('What is your name?\n'))
@@ -29,18 +29,18 @@ if __name__ == '__main__':
     try:
         play()
     except GameOver:
-        GameOver.write_score(
+        Score.append_score(
             file_location=settings.SCORES_FILE,
-            player_name=new_player.name,
-            player_score=new_player.score
+            name=new_player.name,
+            score=new_player.score
         )
-        GameOver.write_best_score(
+        Score.append_best_score(
             file_location=settings.BEST_SCORES_FILE,
-            player_name=new_player.name,
-            player_score=new_player.score
+            name=new_player.name,
+            score=new_player.score
         )
-        print("Game over, looser!\n")
-    except EnemyDown:
-        print("Enemy down!\n")
+        print("You are out of lives, your game is over, looser!\n")
     except KeyboardInterrupt:
         pass
+    finally:
+        print("Good bye!")
